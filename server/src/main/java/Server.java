@@ -58,9 +58,29 @@ public class Server
     public static String listInterfaces() throws java.net.SocketException {
         StringBuilder stringBuilder = new StringBuilder();
         Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-
+        for (NetworkInterface networkInterface : Collections.list(networkInterfaces)) {
+            stringBuilder.append(networkInterface.getDisplayName()).append("\n");
+        }
 
         return stringBuilder.toString();
+    }
+
+    public static String listPorts(String ipAddress) {
+        StringBuilder output = new StringBuilder();
+        try {
+
+            Process process = Runtime.getRuntime().exec("nmap -p- " + ipAddress);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            process.waitFor();
+        } catch (Exception e) {
+            e.printStackTrace();
+            output.append("Error executing nmap.");
+        }
+        return output.toString();
     }
 
 
