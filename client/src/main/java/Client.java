@@ -1,25 +1,48 @@
+import Demo.PrinterPrx;
 import Demo.Response;
+import com.zeroc.Ice.*;
+import com.zeroc.Ice.Exception;
 
-public class Client
-{
-    public static void main(String[] args)
-    {
-        java.util.List<String> extraArgs = new java.util.ArrayList<>();
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Scanner;
 
-        try(com.zeroc.Ice.Communicator communicator = com.zeroc.Ice.Util.initialize(args,"config.client",extraArgs))
-        {
-            //com.zeroc.Ice.ObjectPrx base = communicator.stringToProxy("SimplePrinter:default -p 10000");
-            Response response = null;
-            Demo.PrinterPrx service = Demo.PrinterPrx
-                    .checkedCast(communicator.propertyToProxy("Printer.Proxy"));
-            
-            if(service == null)
-            {
-                throw new Error("Invalid proxy");
+public class Client {
+    private static final String EXIT_COMMAND = "exit";
+    private static final String SERVER_PROXY = "SimpleServer:default -p 9099";
+
+    public static void main(String[] args) {
+        try (Communicator communicator = Util.initialize(args, "config.client");
+             Scanner scanner = new Scanner(System.in)) {
+
+            PrinterPrx server = PrinterPrx.checkedCast(communicator.stringToProxy(SERVER_PROXY));
+            if (server == null) throw new Error("Invalid proxy");
+
+            String username = System.getProperty("user.name");
+            String hostname = InetAddress.getLocalHost().getHostName();
+            String userPrefix = username + "@" + hostname + ":";
+
+            System.out.println("Welcome " + username + " on " + hostname + ".");
+
+            while (true) {
+                System.out.print("Enter a command (or 'exit' to quit): ");
+                String input = scanner.nextLine().trim();
+
+                if (EXIT_COMMAND.equalsIgnoreCase(input)) break;
+
+                String message = username + "@" + hostname + ":" + input;
+                long startTime = System.currentTimeMillis();
+                Response response = server.printString(message);
+                long totalTime = System.currentTimeMillis() - startTime;
+
+                System.out.printf("Server response: %s%n ms", response.value);
+                System.out.printf("Total time: %dms%n ms", totalTime);
+                System.out.printf("Server processing time: %dms%n ms", response.responseTime);
+                System.out.printf("Network latency: %dms%n ms", totalTime - response.responseTime);
             }
-            response = service.printString("Hello World from a remote client!");
-
-            System.out.println("Respuesta del server: " + response.value + ", " + response.responseTime);
+        } catch (Exception | UnknownHostException e) {
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 }
