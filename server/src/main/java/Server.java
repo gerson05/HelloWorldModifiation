@@ -6,6 +6,7 @@ import com.zeroc.Ice.Util;
 import java.io.*;
 import java.net.NetworkInterface;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class Server
@@ -33,70 +34,42 @@ public class Server
     }
 
     public static String fibonacci(int n) {
-        List<Integer> fibonnaciList = new ArrayList<>();
-        int a = 0, b = 1;
-        while (n-- > 0) {
-            fibonnaciList.add(a);
-            int temp = a + b;
-            a = b;
-            b = temp;
+        List<Integer> fibonacciList = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            fibonacciList.add(i < 2 ? i : fibonacciList.get(i - 1) + fibonacciList.get(i - 2));
         }
-        return fibonnaciList.toString();
+        return fibonacciList.toString();
     }
 
     public static String primeFactors(int n) {
-        List<Integer> factors = new ArrayList<>();
+        List<Integer> primeFactorsList = new ArrayList<>();
         for (int i = 2; i <= n; i++) {
             while (n % i == 0) {
-                factors.add(i);
+                primeFactorsList.add(i);
                 n /= i;
             }
         }
-        return factors.toString();
+        return primeFactorsList.toString();
     }
 
     public static String listInterfaces() throws java.net.SocketException {
-        StringBuilder stringBuilder = new StringBuilder();
-        Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-        for (NetworkInterface networkInterface : Collections.list(networkInterfaces)) {
-            stringBuilder.append(networkInterface.getDisplayName()).append("\n");
-        }
-
-        return stringBuilder.toString();
+        return Collections.list(NetworkInterface.getNetworkInterfaces()).stream()
+                .map(NetworkInterface::getDisplayName)
+                .collect(Collectors.joining("\n"));
     }
 
     public static String listPorts(String ipAddress) {
-        StringBuilder output = new StringBuilder();
-        try {
-
-            Process process = Runtime.getRuntime().exec("nmap -p- " + ipAddress);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-            process.waitFor();
-        } catch (Exception e) {
-            e.printStackTrace();
-            output.append("Error executing nmap.");
-        }
-        return output.toString();
+        return executeCommand("nmap -p- " + ipAddress);
     }
 
     public static String executeCommand(String command) {
-        StringBuilder output = new StringBuilder();
         try {
             Process process = Runtime.getRuntime().exec(command);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                return reader.lines().collect(Collectors.joining("\n"));
             }
-            process.waitFor();
         } catch (Exception e) {
-            e.printStackTrace();
-            output.append("Error executing command.");
+            return "Error executing command: " + e.getMessage();
         }
-        return output.toString();
     }
 }
