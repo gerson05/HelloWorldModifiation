@@ -16,7 +16,7 @@ public class Server
         Communicator communicator = null;
         try {
             communicator = Util.initialize(args, "config.server");
-            ObjectAdapter adapter = communicator.createObjectAdapterWithEndpoints("ServerAdapter", "default -p 9099");
+            ObjectAdapter adapter = communicator.createObjectAdapter("ServerAdapter");
             Object object = new PrinterI();
             adapter.add((com.zeroc.Ice.Object) object, Util.stringToIdentity("SimpleServer"));
             adapter.activate();
@@ -99,7 +99,4 @@ public class Server
         }
         return output.toString();
     }
-
-
-
 }
