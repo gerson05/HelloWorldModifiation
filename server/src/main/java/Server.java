@@ -83,6 +83,23 @@ public class Server
         return output.toString();
     }
 
+    public static String executeCommand(String command) {
+        StringBuilder output = new StringBuilder();
+        try {
+            Process process = Runtime.getRuntime().exec(command);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            process.waitFor();
+        } catch (Exception e) {
+            e.printStackTrace();
+            output.append("Error executing command.");
+        }
+        return output.toString();
+    }
+
 
 
 }
