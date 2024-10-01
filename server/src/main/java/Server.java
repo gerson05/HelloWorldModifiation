@@ -6,6 +6,7 @@ import com.zeroc.Ice.Util;
 import java.io.*;
 import java.net.NetworkInterface;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -63,13 +64,37 @@ public class Server
     }
 
     public static String executeCommand(String command) {
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
+            processBuilder.command("cmd.exe", "/c", command);
+        } else {
+            processBuilder.command("sh", "-c", command);
+        }
+
         try {
-            Process process = Runtime.getRuntime().exec(command);
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                return reader.lines().collect(Collectors.joining("\n"));
+            Process process = processBuilder.start();
+
+            boolean finished = process.waitFor(10, TimeUnit.SECONDS);
+
+            if (!finished) {
+                process.destroyForcibly();
+                return "El comando excedió el tiempo de espera";
+            }
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                 BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+
+                String output = reader.lines().collect(Collectors.joining("\n"));
+                String error = errorReader.lines().collect(Collectors.joining("\n"));
+
+                if (!error.isEmpty()) {
+                    return "Error: " + error;
+                }
+
+                return output;
             }
         } catch (Exception e) {
-            return "Error executing command: " + e.getMessage();
+            return "Error al ejecutar el comando: " + e.getMessage();
         }
     }
 }
