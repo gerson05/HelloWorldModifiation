@@ -55,7 +55,7 @@ public class PrinterI implements Demo.Printer {
             String cmd = command.substring(1);
             return new CommandProcessor(() -> Server.executeCommand(cmd), "Command execution");
         } else if (command.startsWith("list clients")) {
-            return new CommandProcessor(Server::listClients, "List clients");
+            return new CommandProcessor(() -> String.join(", ", Server.listClients()), "List clients");
         } else if (command.startsWith("to ")) {
             String[] parts = command.split(":", 2);
             String hostname = parts[0].substring(3).trim();
