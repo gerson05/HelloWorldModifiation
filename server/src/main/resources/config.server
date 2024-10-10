@@ -3,8 +3,8 @@
 # "Hello". The following line sets the endpoints for this
 # adapter.
 #
-ServerAdapter.Endpoints=tcp -h localhost -p 9099
+ServerAdapter.Endpoints=default -h localhost -p 10001
 #
 # Only listen on the ZeroTier's LIASOn1 interface by default.
 #
-Ice.Default.Host=localhost
+Ice.ThreadPool.Server.Size=10

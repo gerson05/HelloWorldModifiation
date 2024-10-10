@@ -2,8 +2,8 @@
 # The client reads this property to create the reference to the
 # "hello" object in the server.
 #
-Printer.Proxy=SimpleServer:tcp -h localhost -p 9099
-
+Printer.Proxy=SimpleServer:tcp -h localhost -p 10001
+Callback.Client.Endpoints=default -p 0
 #
 # Uncomment to use the WebSocket transports instead.
 #

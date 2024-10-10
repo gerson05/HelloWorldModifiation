@@ -1,6 +1,9 @@
+import Demo.CallbackPrx;
 import Demo.PrinterPrx;
 import Demo.Response;
 import com.zeroc.Ice.Communicator;
+import com.zeroc.Ice.ObjectAdapter;
+import com.zeroc.Ice.ObjectPrx;
 import com.zeroc.Ice.Util;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -25,9 +28,16 @@ public class Client {
         try (Communicator communicator = Util.initialize(args, "config.client");
              Scanner scanner = new Scanner(System.in)) {
 
+            ObjectAdapter adapter = communicator.createObjectAdapter("Callback.Client");
+            CallbackReceiverI callbackReceiver = new CallbackReceiverI();
+
+            ObjectPrx prx = adapter.add(callbackReceiver, Util.stringToIdentity("CallbackReceiver"));
+            CallbackPrx callbackPrx = CallbackPrx.checkedCast(prx);
+
+            adapter.activate();
             PrinterPrx server = PrinterPrx.checkedCast(communicator.propertyToProxy(SERVER_PROXY));
             if (server == null) throw new Error("Invalid proxy");
-
+            server.register(callbackPrx);
             String username = System.getProperty("user.name");
             String hostname = InetAddress.getLocalHost().getHostName();
             String userPrefix = username + "@" + hostname + ":";
@@ -49,6 +59,7 @@ public class Client {
                     String message = userPrefix + input;
                     long requestStartTime = System.currentTimeMillis();
                     Response response = server.printString(message);
+
                     long totalTime = System.currentTimeMillis() - requestStartTime;
 
                     System.out.printf("Server response: %s%n", response.value);

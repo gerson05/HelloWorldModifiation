@@ -1,9 +1,14 @@
+import Demo.CallbackPrx;
 import Demo.Response;
 import com.zeroc.Ice.Current;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class PrinterI implements Demo.Printer{
+    private final List<CallbackPrx> callbackReceivers = new ArrayList<>();
+
     @Override
     public Response printString(String message, Current __current) {
         try {
@@ -22,6 +27,7 @@ public class PrinterI implements Demo.Printer{
             String result = processor.process();
             long timetotal = System.currentTimeMillis() - startTime;
             System.out.println(userHost + ": " + processor.getDescription() + ": " + result);
+            sendCallback(new Response(timetotal, result));
             return new Response(timetotal, result);
 
         } catch (Exception e) {
@@ -29,6 +35,15 @@ public class PrinterI implements Demo.Printer{
             return new Response(0, "Error processing message: " + e.getMessage());
         }
 
+    }
+    @Override
+    public void register(CallbackPrx callback, Current __current) {
+        callbackReceivers.add(callback);
+    }
+    private void sendCallback(Response response) {
+        for (CallbackPrx callbackReceiver : callbackReceivers) {
+            callbackReceiver.reportResponse(response);
+        }
     }
     private CommandProcessor getCommandProcessor(String command) throws SocketException {
         if (command.matches("\\d+")) {
