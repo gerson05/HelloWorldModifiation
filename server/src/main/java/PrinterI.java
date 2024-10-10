@@ -1,14 +1,9 @@
-import Demo.CallbackPrx;
 import Demo.Response;
 import com.zeroc.Ice.Current;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Supplier;
 
-public class PrinterI implements Demo.Printer{
-    private final List<CallbackPrx> callbackReceivers = new ArrayList<>();
-
+public class PrinterI implements Demo.Printer {
     @Override
     public Response printString(String message, Current __current) {
         try {
@@ -27,24 +22,14 @@ public class PrinterI implements Demo.Printer{
             String result = processor.process();
             long timetotal = System.currentTimeMillis() - startTime;
             System.out.println(userHost + ": " + processor.getDescription() + ": " + result);
-            sendCallback(new Response(timetotal, result));
             return new Response(timetotal, result);
 
         } catch (Exception e) {
             e.printStackTrace();
             return new Response(0, "Error processing message: " + e.getMessage());
         }
+    }
 
-    }
-    @Override
-    public void register(CallbackPrx callback, Current __current) {
-        callbackReceivers.add(callback);
-    }
-    private void sendCallback(Response response) {
-        for (CallbackPrx callbackReceiver : callbackReceivers) {
-            callbackReceiver.reportResponse(response);
-        }
-    }
     private CommandProcessor getCommandProcessor(String command) throws SocketException {
         if (command.matches("\\d+")) {
             int n = Integer.parseInt(command);
@@ -53,7 +38,7 @@ public class PrinterI implements Demo.Printer{
                     "Fibonacci and prime factors for " + n
             );
         } else if (command.startsWith("listifs")) {
-            return new CommandProcessor(()-> {
+            return new CommandProcessor(() -> {
                 try {
                     return Server.listInterfaces();
                 } catch (SocketException e) {
@@ -69,9 +54,26 @@ public class PrinterI implements Demo.Printer{
         } else if (command.startsWith("!")) {
             String cmd = command.substring(1);
             return new CommandProcessor(() -> Server.executeCommand(cmd), "Command execution");
+        } else if (command.startsWith("list clients")) {
+            return new CommandProcessor(Server::listClients, "List clients");
+        } else if (command.startsWith("to ")) {
+            String[] parts = command.split(":", 2);
+            String hostname = parts[0].substring(3).trim();
+            String message = parts[1].trim();
+            return new CommandProcessor(() -> {
+                Server.sendMessageToClient(hostname, message);
+                return "Message sent to " + hostname;
+            }, "Send message to client " + hostname);
+        } else if (command.startsWith("BC")) {
+            String message = command.substring(2).trim();
+            return new CommandProcessor(() -> {
+                Server.broadcastMessage(message);
+                return "Broadcast message sent";
+            }, "Broadcast message");
         }
         return null;
     }
+
     private static class CommandProcessor {
         private final Supplier<String> processor;
         private final String description;
