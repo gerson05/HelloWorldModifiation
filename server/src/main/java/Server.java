@@ -1,28 +1,18 @@
 import com.zeroc.Ice.Communicator;
 import com.zeroc.Ice.ObjectAdapter;
 import com.zeroc.Ice.Util;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class Server {
-    private static final int THREAD_POOL_SIZE = 10;
-    private static final List<String> registeredClients = Collections.synchronizedList(new ArrayList<>());
+    private static final Map<String, Demo.CallbackPrx> clients = new ConcurrentHashMap<>();
+    private static final ExecutorService threadPool = Executors.newCachedThreadPool();
 
     public static void main(String[] args) {
         int status = 0;
         Communicator communicator = null;
-        ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
-
         try {
             communicator = Util.initialize(args, "config.server");
             ObjectAdapter adapter = communicator.createObjectAdapter("ServerAdapter");
@@ -30,44 +20,36 @@ public class Server {
             adapter.add((com.zeroc.Ice.Object) object, Util.stringToIdentity("SimpleServer"));
             adapter.activate();
             System.out.println("Server started...");
-
-            while (true) {
-                // Accept client connections and handle them in separate threads
-                Communicator finalCommunicator = communicator;
-                executorService.submit(() -> handleClientRequest(finalCommunicator));
-            }
+            communicator.waitForShutdown();
         } catch (Exception e) {
             e.printStackTrace();
             status = 1;
-        } finally {
-            if (communicator != null) {
-                communicator.destroy();
-            }
-            executorService.shutdown();
-            System.exit(status);
         }
-    }
-
-    private static void handleClientRequest(Communicator communicator) {
-        // Handle client request logic here
-    }
-
-    public static void registerClient(String hostname) {
-        registeredClients.add(hostname);
-    }
-
-    public static List<String> listClients() {
-        return new ArrayList<>(registeredClients);
-    }
-
-    public static void broadcastMessage(String message) {
-        for (String client : registeredClients) {
-            // Send message to each client
+        if (communicator != null) {
+            communicator.destroy();
         }
+        System.exit(status);
+    }
+
+    public static void registerClient(String hostname, Demo.CallbackPrx callbackPrx) {
+        clients.put(hostname, callbackPrx);
+    }
+
+    public static String listClients() {
+        return String.join(", ", clients.keySet());
     }
 
     public static void sendMessageToClient(String hostname, String message) {
-        // Send message to specific client
+        Demo.CallbackPrx client = clients.get(hostname);
+        if (client != null) {
+            client.reportResponse(new Demo.Response(0, message));
+        }
+    }
+
+    public static void broadcastMessage(String message) {
+        for (Demo.CallbackPrx client : clients.values()) {
+            client.reportResponse(new Demo.Response(0, message));
+        }
     }
 
     public static String fibonacci(int n) {
@@ -89,7 +71,7 @@ public class Server {
         return primeFactorsList.toString();
     }
 
-    public static String listInterfaces() throws SocketException {
+    public static String listInterfaces() throws java.net.SocketException {
         return Collections.list(NetworkInterface.getNetworkInterfaces()).stream()
                 .map(NetworkInterface::getDisplayName)
                 .collect(Collectors.joining("\n"));
@@ -100,13 +82,37 @@ public class Server {
     }
 
     public static String executeCommand(String command) {
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
+            processBuilder.command("cmd.exe", "/c", command);
+        } else {
+            processBuilder.command("sh", "-c", command);
+        }
+
         try {
-            Process process = Runtime.getRuntime().exec(command);
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                return reader.lines().collect(Collectors.joining("\n"));
+            Process process = processBuilder.start();
+
+            boolean finished = process.waitFor(10, TimeUnit.SECONDS);
+
+            if (!finished) {
+                process.destroyForcibly();
+                return "El comando excedió el tiempo de espera";
+            }
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                 BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+
+                String output = reader.lines().collect(Collectors.joining("\n"));
+                String error = errorReader.lines().collect(Collectors.joining("\n"));
+
+                if (!error.isEmpty()) {
+                    return "Error: " + error;
+                }
+
+                return output;
             }
         } catch (Exception e) {
-            return "Error executing command: " + e.getMessage();
+            return "Error al ejecutar el comando: " + e.getMessage();
         }
     }
 }

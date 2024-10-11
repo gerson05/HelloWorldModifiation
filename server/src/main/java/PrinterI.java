@@ -14,7 +14,7 @@ public class PrinterI implements Demo.Printer {
 
             String userHost = splitMessage[0];
             String command = splitMessage[1].trim();
-            CommandProcessor processor = getCommandProcessor(command);
+            CommandProcessor processor = getCommandProcessor(command, userHost);
             if (processor == null) {
                 return new Response(0, "Unknown command");
             }
@@ -30,7 +30,7 @@ public class PrinterI implements Demo.Printer {
         }
     }
 
-    private CommandProcessor getCommandProcessor(String command) throws SocketException {
+    private CommandProcessor getCommandProcessor(String command, String userHost) throws SocketException {
         if (command.matches("\\d+")) {
             int n = Integer.parseInt(command);
             return new CommandProcessor(
@@ -55,7 +55,7 @@ public class PrinterI implements Demo.Printer {
             String cmd = command.substring(1);
             return new CommandProcessor(() -> Server.executeCommand(cmd), "Command execution");
         } else if (command.startsWith("list clients")) {
-            return new CommandProcessor(() -> String.join(", ", Server.listClients()), "List clients");
+            return new CommandProcessor(Server::listClients, "List clients");
         } else if (command.startsWith("to ")) {
             String[] parts = command.split(":", 2);
             String hostname = parts[0].substring(3).trim();
