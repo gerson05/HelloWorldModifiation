@@ -8,6 +8,7 @@ import com.zeroc.Ice.Util;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Scanner;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Client {
@@ -39,7 +40,7 @@ public class Client {
             if (server == null) throw new Error("Invalid proxy");
             String username = System.getProperty("user.name");
             String hostname = InetAddress.getLocalHost().getHostName();
-            server.register(hostname, callbackPrx);
+            server.register(username + "@" + hostname + UUID.randomUUID(), callbackPrx);
             String userPrefix = username + "@" + hostname + ":";
 
             System.out.println("Welcome " + username + " on " + hostname + ".");
