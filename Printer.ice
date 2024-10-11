@@ -12,6 +12,6 @@ module Demo
     interface Printer
     {
         Response printString(string s);
-        void register(Callback* callback);
+        void register(string hostname, Callback* callback);
     }
 }

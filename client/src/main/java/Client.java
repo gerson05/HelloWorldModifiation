@@ -37,9 +37,9 @@ public class Client {
             adapter.activate();
             PrinterPrx server = PrinterPrx.checkedCast(communicator.propertyToProxy(SERVER_PROXY));
             if (server == null) throw new Error("Invalid proxy");
-            server.registerCallback(callbackPrx);
             String username = System.getProperty("user.name");
             String hostname = InetAddress.getLocalHost().getHostName();
+            server.register(hostname, callbackPrx);
             String userPrefix = username + "@" + hostname + ":";
 
             System.out.println("Welcome " + username + " on " + hostname + ".");
@@ -49,6 +49,7 @@ public class Client {
                         "'listifs' for network interfaces\n" +
                         "'listports <ip address>' for open ports on <ip address>\n" +
                         "'!command' to execute command on server linux console\n" +
+                        "'list clients' to list all connected clients\n" +
                         "'to <hostname>: <message>' to send a message to a specific client\n" +
                         "'BC <message>' to broadcast a message to all clients\n" +
                         "or 'exit' to quit: ");

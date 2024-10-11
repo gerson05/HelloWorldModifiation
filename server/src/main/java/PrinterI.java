@@ -30,6 +30,11 @@ public class PrinterI implements Demo.Printer {
         }
     }
 
+    @Override
+    public void register(String hostname, Demo.CallbackPrx callback, Current __current) {
+        Server.registerClient(hostname, callback);
+    }
+
     private CommandProcessor getCommandProcessor(String command, String userHost) throws SocketException {
         if (command.matches("\\d+")) {
             int n = Integer.parseInt(command);
@@ -55,7 +60,7 @@ public class PrinterI implements Demo.Printer {
             String cmd = command.substring(1);
             return new CommandProcessor(() -> Server.executeCommand(cmd), "Command execution");
         } else if (command.startsWith("list clients")) {
-            return new CommandProcessor(Server::listClients, "List clients");
+            return new CommandProcessor(Server::listClients, "list clients");
         } else if (command.startsWith("to ")) {
             String[] parts = command.split(":", 2);
             String hostname = parts[0].substring(3).trim();
@@ -67,7 +72,7 @@ public class PrinterI implements Demo.Printer {
         } else if (command.startsWith("BC")) {
             String message = command.substring(2).trim();
             return new CommandProcessor(() -> {
-                Server.broadcastMessage(message);
+                Server.broadcastMessage(userHost + ": " + message);
                 return "Broadcast message sent";
             }, "Broadcast message");
         }

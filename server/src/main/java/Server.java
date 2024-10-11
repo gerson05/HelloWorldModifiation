@@ -1,6 +1,9 @@
 import com.zeroc.Ice.Communicator;
 import com.zeroc.Ice.ObjectAdapter;
 import com.zeroc.Ice.Util;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.NetworkInterface;
 import java.util.*;
 import java.util.concurrent.*;
@@ -33,6 +36,7 @@ public class Server {
 
     public static void registerClient(String hostname, Demo.CallbackPrx callbackPrx) {
         clients.put(hostname, callbackPrx);
+        System.out.println("Client registered: " + hostname);
     }
 
     public static String listClients() {

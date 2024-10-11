@@ -4,7 +4,7 @@ import com.zeroc.Ice.Current;
 
 public class CallbackReceiverI implements Callback {
     @Override
-    public void reportResponse(Response response, Current current) {
-        System.out.println("Received callback: " + response.value);
+    public void reportResponse(Response response, Current __current) {
+        System.out.println("Received message from server: " + response.value);
     }
 }
